@@ -1,41 +1,34 @@
 import { z } from 'zod';
 import { procedure, router } from '../trpc';
-import { randomUUID } from 'node:crypto';
-
-let players = [
-  { id: randomUUID(), name: 'Lionel Messi', age: 35, available: true },
-  { id: randomUUID(), name: 'Cristiano Ronaldo', age: 38, available: true },
-  { id: randomUUID(), name: 'Neymar', age: 31, available: true },
-  { id: randomUUID(), name: 'Kylian Mbappé', age: 24, available: true },
-  { id: randomUUID(), name: 'Erling Haaland', age: 22, available: true },
-  { id: randomUUID(), name: 'Vinicius Junior', age: 22, available: true }
-];
 
 export const playersRouter = router({
-  all: procedure.query(() => players),
+  all: procedure.query(async ({ ctx }) => {
+    const players = await ctx.prisma.player.findMany({ orderBy: { name: 'asc' } });
+
+    return players;
+  }),
   add: procedure
     .input(z.object({ name: z.string().min(1), age: z.number().min(17) }))
-    .mutation(({ input }) => {
-      const newPlayer = { id: randomUUID(), name: input.name, age: input.age, available: true };
+    .mutation(async ({ ctx, input }) => {
+      const playerData = { name: input.name, age: input.age };
 
-      players.push(newPlayer);
+      const player = await ctx.prisma.player.create({ data: playerData });
 
-      return newPlayer;
+      return player;
     }),
-  update: procedure.input(z.object({ id: z.string().uuid() })).mutation(({ input }) => {
-    players.forEach((player) => {
-      if (player.id === input.id) {
-        player.available = !player.available;
-      }
-    });
+  update: procedure
+    .input(z.object({ id: z.string().uuid(), available: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const player = await ctx.prisma.player.update({
+        where: { id: input.id },
+        data: { available: input.available }
+      });
 
-    return true;
-  }),
-  delete: procedure.input(z.object({ id: z.string().uuid() })).mutation(({ input }) => {
-    const newData = players.filter((player) => player.id !== input.id);
+      return player;
+    }),
+  delete: procedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+    const player = await ctx.prisma.player.delete({ where: { id: input.id } });
 
-    players = newData;
-
-    return true;
+    return player;
   })
 });

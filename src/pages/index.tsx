@@ -25,8 +25,8 @@ export default function Home() {
     setValue('age', '17');
   };
 
-  const handleUpdate = (id: string) => {
-    updatePlayer.mutate({ id });
+  const handleUpdate = (id: string, available: boolean) => {
+    updatePlayer.mutate({ id, available: !available });
   };
 
   const handleDelete = (id: string) => {
@@ -57,7 +57,7 @@ export default function Home() {
         {allPlayers.data.map((player) => (
           <li key={player.id} className="font-medium">
             {player.name} | {player.age} years old | Available: {player.available ? 'Yes' : 'No'} |{' '}
-            <button onClick={() => handleUpdate(player.id)} className="underline">
+            <button onClick={() => handleUpdate(player.id, player.available)} className="underline">
               Update
             </button>{' '}
             |{' '}
